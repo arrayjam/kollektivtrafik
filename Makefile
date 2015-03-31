@@ -1,7 +1,10 @@
-extract_gtfs: sources/gtfs.zip sources/types
+shapes_to_topojson: data/ node_modules/
+	sh shapes_to_topojson.sh
+
+extract_gtfs: sources/ sources/gtfs.zip sources/types node_modules/
 	sh extract_gtfs.sh
 
-shapes_to_topojson: data/
+shapes_to_topojson: data/ node_modules/
 	sh shapes_to_topojson.sh
 
 sources/gtfs.zip:
@@ -10,8 +13,14 @@ sources/gtfs.zip:
 data/:
 	mkdir -p $@
 
+sources/:
+	mkdir -p $@
+
 sources/types:
 	mkdir -p $@
+
+node_modules/:
+	npm install
 
 clean:
 	rm -r sources/types data
