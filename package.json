@@ -1,0 +1,13 @@
+{
+  "name": "kollektivtrafik",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Yuri Feldman",
+  "license": "MIT",
+  "dependencies": {
+    "d3": "^3.5.5",
+    "rw": "^0.1.4",
+    "topojson": "^1.6.18",
+    "turf": "^2.0.2"
+  }
+}
