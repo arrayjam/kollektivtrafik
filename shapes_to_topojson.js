@@ -47,7 +47,13 @@ for(var id in shapes) {
 var featureCollection = turf.featurecollection(features);
 // console.log(featureCollection.features.map(function(d) { return d.properties; }));
 
-var topology = topojson.topology({collection: featureCollection}, {verbose: true, id: function(d) { return d.properties.id; }});
-console.log(topology.objects.collection);
+var topology = topojson.topology({collection: featureCollection}, {
+    verbose: true,
+    id: function(d) { return d.properties.id; },
+    quantization: 1e5
+});
 
-rw.writeFileSync("shapes.topojson", JSON.stringify(topology), "utf8");
+var simplified = topojson.simplify(topology, {verbose: true, "coordinate-system": "spherical", "minimum-area": 1e-10});
+// console.log(simplified.objects.collection);
+
+rw.writeFileSync("shapes.topojson", JSON.stringify(simplified), "utf8");
