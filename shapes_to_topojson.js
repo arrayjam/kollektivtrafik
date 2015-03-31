@@ -1,7 +1,8 @@
 var d3 = require("d3"),
     topojson = require("topojson"),
     turf = require("turf"),
-    rw = require("rw");
+    rw = require("rw"),
+    verbose = false;
 
 var contents = rw.readFileSync("/dev/stdin", "utf8");
 
@@ -45,15 +46,13 @@ for(var id in shapes) {
 }
 
 var featureCollection = turf.featurecollection(features);
-// console.log(featureCollection.features.map(function(d) { return d.properties; }));
 
 var topology = topojson.topology({collection: featureCollection}, {
-    verbose: true,
+    verbose: verbose,
     id: function(d) { return d.properties.id; },
     quantization: 1e5
 });
 
-var simplified = topojson.simplify(topology, {verbose: true, "coordinate-system": "spherical", "minimum-area": 1e-10});
-// console.log(simplified.objects.collection);
+// var simplified = topojson.simplify(topology, {verbose: verbose, "coordinate-system": "spherical", "minimum-area": 1e-10});
 
-rw.writeFileSync("shapes.topojson", JSON.stringify(simplified), "utf8");
+rw.writeFileSync("/dev/stdout", JSON.stringify(topology), "utf8");
