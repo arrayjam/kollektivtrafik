@@ -17,6 +17,7 @@ csv.forEach(function(row) {
     var point = {
         position: [+row.shape_pt_lon, +row.shape_pt_lat],
         sequence: +row.shape_pt_sequence,
+        distance: +row.shape_dist_traveled
     };
 
     shapes[id].push(point);
@@ -34,12 +35,19 @@ for(var id in shapes) {
         delete point.sequence;
     });
 
+    var maxDistance = shapes[id][shapes[id].length - 1].distance;
+
+    shapes[id].forEach(function(point) {
+        delete point.distance;
+    });
+
     shapes[id] = shapes[id].map(function(point) {
         return point.position;
     });
 
     var linestring = turf.linestring(shapes[id], {
-        id: id
+        id: id,
+        distance: maxDistance
     });
 
     features.push(linestring);
@@ -50,7 +58,12 @@ var featureCollection = turf.featurecollection(features);
 var topology = topojson.topology({collection: featureCollection}, {
     verbose: verbose,
     id: function(d) { return d.properties.id; },
-    quantization: 1e5
+    quantization: 1e5,
+    "property-transform": function(feature) {
+        return {
+            distance: feature.properties.distance
+        };
+    }
 });
 
 // var simplified = topojson.simplify(topology, {verbose: verbose, "coordinate-system": "spherical", "minimum-area": 1e-10});
