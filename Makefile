@@ -7,11 +7,15 @@ GOOGLE_TRANSIT_ZIPS = $(addsuffix /google_transit.zip,$(GTFS_DIRS))
 TOPOJSON_FILES = $(addsuffix .topojson,$(addprefix data/,$(TRANSPORT_TYPES)))
 
 all:
-	make $(TOPOJSON_FILES)
+	@$(MAKE) $(TOPOJSON_FILES)
 
 data/%.topojson: sources/types/%/shapes.csv
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	node shapes_to_topojson.js $(<D) > $@
+
+data/%/trips.json: sources/types/%/trips.csv sources/types/%/stop_times.csv sources/types/%/routes.csv
+	@[ -d $(@D) ] || mkdir -p $(@D)
+	touch $@
 
 %.csv: %.txt
 	cp $< $@

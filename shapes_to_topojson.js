@@ -2,9 +2,18 @@ var d3 = require("d3"),
     topojson = require("topojson"),
     turf = require("turf"),
     rw = require("rw"),
-    verbose = false;
+    verbose = false,
+    path = require("path");
 
-var contents = rw.readFileSync("/dev/stdin", "utf8");
+if(process.argv.length < 3) {
+    console.log("Usage: node shapes_to_topojson.js path/to/gtfs/root");
+    process.exit(1);
+}
+
+var gtfsPath = process.argv[2],
+    shapesPath = path.join(gtfsPath, "shapes.csv");
+
+var contents = rw.readFileSync(shapesPath, "utf8");
 
 var csv = d3.csv.parse(contents);
 
@@ -15,9 +24,9 @@ csv.forEach(function(row) {
     shapes[id] = shapes[id] || [];
 
     var point = {
-        position: [+row.shape_pt_lon, +row.shape_pt_lat],
-        sequence: +row.shape_pt_sequence,
-        distance: +row.shape_dist_traveled
+       position: [+row.shape_pt_lon, +row.shape_pt_lat],
+       sequence: +row.shape_pt_sequence,
+       distance: +row.shape_dist_traveled
     };
 
     shapes[id].push(point);
