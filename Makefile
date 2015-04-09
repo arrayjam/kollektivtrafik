@@ -4,18 +4,21 @@ GTFS_FILES = $(addsuffix .txt,$(GTFS_FILE_TYPES))
 GTFS_FILES_WILDCARD = $(addprefix sources/types/%/,$(GTFS_FILES))
 GTFS_DIRS = $(addprefix sources/types/,$(TRANSPORT_TYPES))
 GOOGLE_TRANSIT_ZIPS = $(addsuffix /google_transit.zip,$(GTFS_DIRS))
-TOPOJSON_FILES = $(addsuffix .topojson,$(addprefix data/,$(TRANSPORT_TYPES)))
+DATA_DIRS = $(addprefix data/,$(TRANSPORT_TYPES))
+TOPOJSON_FILES = $(addsuffix /shapes.topojson,$(DATA_DIRS))
+SCHEDULE_FILES = $(addsuffix /trips.json,$(DATA_DIRS))
 
 all:
 	@$(MAKE) $(TOPOJSON_FILES)
+	@$(MAKE) $(SCHEDULE_FILES)
 
-data/%.topojson: sources/types/%/shapes.csv
+data/%/shapes.topojson: sources/types/%/shapes.csv
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	node shapes_to_topojson.js $(<D) > $@
 
-data/%/trips.json: sources/types/%/trips.csv sources/types/%/stop_times.csv sources/types/%/routes.csv
+data/%/trips.json: sources/types/%/trips.csv sources/types/%/stop_times.csv sources/types/%/routes.csv sources/types/%/calendar.csv
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	touch $@
+	node gtfs_parse.js sources/types/$* data/$*
 
 %.csv: %.txt
 	cp $< $@
