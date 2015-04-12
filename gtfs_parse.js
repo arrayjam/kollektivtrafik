@@ -1,7 +1,8 @@
 var d3 = require("d3"),
     turf = require("turf"),
     rw = require("rw"),
-    path = require("path");
+    path = require("path"),
+    transit = require("transit-js");
 
 if(process.argv.length < 3) {
     console.log("Usage: node gtfs_parse.js path/to/gtfs/type/root path/to/data/type");
@@ -56,16 +57,35 @@ var transformToSecondsIntoDay = function(time) {
             (+split[2]));
 };
 
-var stopContents = rw.readFileSync(stopTimesPath, "utf8");
-d3.csv.parse(stopContents).forEach(function(stopTime) {
-    var stop = {
-        arrival: transformToSecondsIntoDay(stopTime.arrival_time),
-        departure: transformToSecondsIntoDay(stopTime.departure_time),
-        distance: +stopTime.shape_dist_traveled,
-        stop_id: +stopTime.stop_id,
-    };
+var reader = rw.fileReader(stopTimesPath),
+    parser = rw.dsvParser();
 
-    trips[stopTime.trip_id].stops.push(stop);
+reader.fill(function flow(error) {
+    if (error) throw error;
+    var data = reader.read(),
+        row;
+
+    if (data) parser.push(data);
+
+    while ((row = parser.pop(reader.ended)) != null) {
+        var stop = {
+            // arrival: row.arrival_time,
+            // departure: row.departure_time,
+            arrival: transformToSecondsIntoDay(row.arrival_time),
+            departure: transformToSecondsIntoDay(row.departure_time),
+            distance: +row.shape_dist_traveled | 0,
+            stop_id: +row.stop_id,
+        };
+
+        trips[row.trip_id].stops.push(stop);
+    }
+
+    if(reader.ended) {
+        var writer = transit.writer("json");
+        rw.writeFileSync(tripsDataPath, writer.write(trips), "utf8");
+        return;
+    }
+
+    reader.fill(flow);
 });
 
-rw.writeFileSync(tripsDataPath, JSON.stringify(trips), "utf8");
