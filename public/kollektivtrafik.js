@@ -24,7 +24,7 @@ var svg = d3.select("body").append("svg")
 
 function ready(error, shapes, trips, calendar) {
     var serviceID = "T0",
-        from = 0,
+        from = 14400,
         to = 86400,
         timestamp = from;
 
