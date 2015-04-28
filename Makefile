@@ -1,24 +1,38 @@
+# TRANSPORT_TYPES = 1 2 3 4 5 6 7 8 10
 TRANSPORT_TYPES = 1 2 3 4 5 6 7 8 10
 GTFS_FILE_TYPES = agency calendar_dates routes stop_times trips calendar shapes stops
 GTFS_FILES = $(addsuffix .txt,$(GTFS_FILE_TYPES))
 GTFS_FILES_WILDCARD = $(addprefix sources/types/%/,$(GTFS_FILES))
 GTFS_DIRS = $(addprefix sources/types/,$(TRANSPORT_TYPES))
 GOOGLE_TRANSIT_ZIPS = $(addsuffix /google_transit.zip,$(GTFS_DIRS))
-DATA_DIRS = $(addprefix data/,$(TRANSPORT_TYPES))
+DATA_DIRS = $(addprefix public/data/,$(TRANSPORT_TYPES))
 TOPOJSON_FILES = $(addsuffix /shapes.topojson,$(DATA_DIRS))
-SCHEDULE_FILES = $(addsuffix /trips.json,$(DATA_DIRS))
+SCHEDULE_FILES = $(addsuffix /compressed.json,$(DATA_DIRS))
+TOPOJSON_LINKS = $(addprefix public/data/topojson/,$(addsuffix .topojson,$(TRANSPORT_TYPES)))
 
 all:
 	@$(MAKE) $(TOPOJSON_FILES)
 	@$(MAKE) $(SCHEDULE_FILES)
+	@$(MAKE) $(TOPOJSON_LINKS)
 
-data/%/shapes.topojson: sources/types/%/shapes.csv
+topojson:
+	@$(MAKE) $(TOPOJSON_LINKS)
+
+public/data/topojson/%.topojson: public/data/%/shapes.topojson
+	@[ -d $(@D) ] || mkdir -p $(@D)
+	ln -sf $< ../$@
+
+public/data/%/shapes.topojson: sources/types/%/shapes.csv
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	node shapes_to_topojson.js $(<D) > $@
 
-data/%/trips.json: sources/types/%/trips.csv sources/types/%/stop_times.csv sources/types/%/routes.csv sources/types/%/calendar.csv
+public/data/%/compressed.json: public/data/%/trips.json
+	cat $< | gzip -9 -c > $@
+	ls -h $@
+
+public/data/%/trips.json: sources/types/%/trips.csv sources/types/%/stop_times.csv sources/types/%/routes.csv sources/types/%/calendar.csv gtfs_parse.js
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	node gtfs_parse.js sources/types/$* data/$*
+	node gtfs_parse.js sources/types/$* public/data/$*
 
 %.csv: %.txt
 	cp $< $@
@@ -46,7 +60,7 @@ dist: all
 	rm -r sources/types
 
 clean:
-	rm -r sources/types data
+	rm -r sources/types public/data
 
 # No intermediate files should be deleted
 .SECONDARY:

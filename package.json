@@ -6,8 +6,9 @@
   "license": "MIT",
   "dependencies": {
     "d3": "^3.5.5",
+    "express": "^4.12.3",
     "rw": "^0.1.4",
-    "topojson": "^1.6.18",
+    "topojson": "^1.6.19",
     "transit-js": "^0.8.784",
     "turf": "^2.0.2"
   }

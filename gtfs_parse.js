@@ -2,6 +2,7 @@ var d3 = require("d3"),
     turf = require("turf"),
     rw = require("rw"),
     path = require("path"),
+    crypto = require("crypto"),
     transit = require("transit-js");
 
 if(process.argv.length < 3) {
@@ -81,8 +82,30 @@ reader.fill(function flow(error) {
     }
 
     if(reader.ended) {
-        var writer = transit.writer("json");
-        rw.writeFileSync(tripsDataPath, writer.write(trips), "utf8");
+        // var stopHashes = {};
+        // for(var trip in trips) {
+        //     var digest = crypto.createHash("md5").update(JSON.stringify(trips[trip].stops)).digest("hex");
+        //     stopHashes[digest] = stopHashes[digest] ? stopHashes[digest]++ : 0;
+        //     // console.log(JSON.stringify(trips[trip].stops));
+        //     // process.exit();
+        // }
+
+        // for(var hash in stopHashes) {
+        //     if(stopHashes[hash] > 0) {
+        //         console.log(stopHashes[hash], hash);
+        //     }
+        // }
+        // var transitJSON = transit.writer("json").write(trips);
+        // var json = JSON.stringify(trips);
+        // TODO (yuri) bottleneck is either writer.write or writeFileSync
+        // rw.writeFileSync(tripsDataPath, transit.writer("json").write(trips), "utf8");
+        var tripsArray = [];
+        for(var trip in trips) {
+            trips[trip].trip_id = trip;
+            tripsArray.push(trips[trip]);
+        }
+
+        rw.writeFileSync(tripsDataPath, JSON.stringify(tripsArray), "utf8");
         return;
     }
 

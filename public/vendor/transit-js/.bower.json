@@ -1,0 +1,33 @@
+{
+  "name": "transit-js",
+  "version": "0.8.783",
+  "description": "Transit is a data format and a set of libraries for conveying values between applications written in different languages. This library provides support for marshalling Transit data to/from Javascript.",
+  "keywords": [
+    "JSON",
+    "serialization",
+    "transit-format",
+    "es6",
+    "harmony",
+    "map",
+    "set",
+    "polyfill"
+  ],
+  "author": "Cognitect",
+  "license": "APL",
+  "main": "./transit.js",
+  "homepage": "https://github.com/cognitect/bower-transit-js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/cognitect/bower-transit-js.git"
+  },
+  "_release": "0.8.783",
+  "_resolution": {
+    "type": "version",
+    "tag": "0.8.783",
+    "commit": "38b3803705abd2002d8276131b8621a176cc1e99"
+  },
+  "_source": "git://github.com/cognitect/bower-transit-js.git",
+  "_target": "~0.8.783",
+  "_originalSource": "transit-js",
+  "_direct": true
+}
