@@ -24,16 +24,18 @@ var svg = d3.select("body").append("svg")
 
 function ready(error, shapes, trips, calendar) {
     var serviceID = "T0",
-        from = 43200,
-        to = 50000,
+        from = 0,
+        to = 86400,
         timestamp = from;
 
-    var shapeGeoJson = topojson.feature(shapes, shapes.objects.collection);
+    var shapeFeatures = topojson.feature(shapes, shapes.objects.collection);
+    var shapeMesh = topojson.mesh(shapes, shapes.objects.collection);
 
-    svg.selectAll("path").data(shapeGeoJson.features)
-        .enter().append("path")
+    svg.append("path").datum(shapeMesh)
         .attr("class", "line")
         .attr("d", path);
+
+    var textDisplay = d3.select("body").append("div");
 
     var tripCF = crossfilter(trips);
 
@@ -44,7 +46,7 @@ function ready(error, shapes, trips, calendar) {
     startTime.filterRange([from, to]);
     endTime.filterRange([from, to]);
 
-    var lineCF = crossfilter(shapeGeoJson.features);
+    var lineCF = crossfilter(shapeFeatures.features);
 
     var lines = lineCF.dimension(function(d) { return d.id; });
 
@@ -67,6 +69,9 @@ function ready(error, shapes, trips, calendar) {
             });
         });
 
+        allTimes.unshift({timestamp: stops[0].arrival - 1, distance: void 0});
+        allTimes.push({timestamp: stops[stops.length - 1].departure + 1, distance: void 0});
+
         var tripScale = d3.scale.linear().clamp(true)
             .domain(allTimes.map(function(d) { return d.timestamp; }))
             .range(allTimes.map(function(d) { return d.distance; }));
@@ -78,8 +83,11 @@ function ready(error, shapes, trips, calendar) {
     function for_ts(time) {
         var points = [];
         scales.forEach(function(scale) {
-            var lineString = lines.filter(scale.shape_id).top(Infinity)[0];
-            points.push(turf.along(lineString, scale.scale(time) / 1000, "kilometers"));
+            var distance = scale.scale(time);
+            if(distance) {
+                var lineString = lines.filter(scale.shape_id).top(Infinity)[0];
+                points.push(turf.along(lineString, distance / 1000, "kilometers"));
+            }
         });
 
         var mapPoints = svg.selectAll("circle").data(points.map(function(d) { return d.geometry.coordinates; }));
@@ -106,6 +114,10 @@ function ready(error, shapes, trips, calendar) {
         } else {
             window.requestAnimationFrame(step);
         }
+
+        textDisplay.text((((timestamp / 60 / 60) | 0) % 12) + ":" +
+                         (((timestamp / 60) | 0) % 60) + ":" +
+                         (timestamp % 60));
     }
 
 
