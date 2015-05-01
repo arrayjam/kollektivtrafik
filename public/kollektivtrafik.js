@@ -1,9 +1,9 @@
 /* globals queue, transit, crossfilter */
 
 queue()
-    .defer(d3.json, "data/2/shapes.topojson")
-    .defer(d3.json, "data/2/trips.json")
-    .defer(d3.csv, "data/2/calendar.csv")
+    .defer(d3.json, "data/4/shapes.topojson")
+    .defer(d3.json, "data/4/trips.json")
+    .defer(d3.csv,  "data/4/calendar.csv")
     .await(ready);
 
 var width = 960,
@@ -11,12 +11,16 @@ var width = 960,
 
 var projection = d3.geo.mercator()
     .scale(1 << 16)
-    .translate([width / 2, height / 2])
+    .translate([400, 400])
     .center([144.9631, -37.8136])
     .precision(0.1);
 
 var path = d3.geo.path()
     .projection(projection);
+
+var textDisplay = d3.select("body").append("h1").attr("class", "time");
+
+var pad0 = d3.format("02d");
 
 var svg = d3.select("body").append("svg")
     .attr("width", width)
@@ -24,8 +28,13 @@ var svg = d3.select("body").append("svg")
 
 function ready(error, shapes, trips, calendar) {
     var serviceID = "T0",
-        from = 14400,
+    // var serviceID = "T0+a5",
+        // from = 15400,
+        from = 15900,
+        // from = 28800,
         to = 86400,
+        timestep = 4,
+        pulse = false,
         timestamp = from;
 
     var shapeFeatures = topojson.feature(shapes, shapes.objects.collection);
@@ -35,23 +44,23 @@ function ready(error, shapes, trips, calendar) {
         .attr("class", "line")
         .attr("d", path);
 
-    var textDisplay = d3.select("body").append("div");
 
-    var tripCF = crossfilter(trips);
+    // var tripCF = crossfilter(trips);
 
-    var services = tripCF.dimension(function(d) { return d.service_id; });
-    var startTime = tripCF.dimension(function(d) { return d.stops[0].arrival; });
-    var endTime = tripCF.dimension(function(d) { return d.stops[d.stops.length - 1].departure; });
-    services.filter(serviceID);
-    startTime.filterRange([from, to]);
-    endTime.filterRange([from, to]);
+    // var services = tripCF.dimension(function(d) { return d.service_id; });
+    // var startTime = tripCF.dimension(function(d) { return d.stops[0].arrival; });
+    // var endTime = tripCF.dimension(function(d) { return d.stops[d.stops.length - 1].departure; });
+    // services.filter(serviceID);
+    // startTime.filterRange([from, to]);
+    // endTime.filterRange([from, to]);
 
     var lineCF = crossfilter(shapeFeatures.features);
 
     var lines = lineCF.dimension(function(d) { return d.id; });
 
 
-    function get() { return services.top(Infinity); }
+    // function get() { return services.top(Infinity); }
+    function get() { return trips; }
 
     var scales = [];
     get().forEach(function(trip) {
@@ -60,66 +69,100 @@ function ready(error, shapes, trips, calendar) {
         stops.forEach(function(d) {
             allTimes.push({
                 timestamp: d.arrival,
-                distance: d.distance
+                distance: d.distance / 1000
             });
 
             allTimes.push({
                 timestamp: d.departure,
-                distance: d.distance
+                distance: d.distance / 1000
             });
         });
 
-        allTimes.unshift({timestamp: stops[0].arrival - 1, distance: void 0});
-        allTimes.push({timestamp: stops[stops.length - 1].departure + 1, distance: void 0});
+        var minTime = stops[0].arrival,
+            maxTime = stops[stops.length - 1].departure;
+
+        allTimes.unshift({timestamp: minTime, distance: void 0});
+        allTimes.push({timestamp: maxTime, distance: void 0});
 
         var tripScale = d3.scale.linear().clamp(true)
             .domain(allTimes.map(function(d) { return d.timestamp; }))
             .range(allTimes.map(function(d) { return d.distance; }));
 
-        scales.push({scale: tripScale, shape_id: trip.shape_id});
+        scales.push({
+            scale: tripScale,
+            shape_id: trip.shape_id,
+            minTime: minTime,
+            maxTime: maxTime,
+            arrivalStationTimes: stops.map(function(d) { return d.arrival; }),
+            departureStationTimes: stops.map(function(d) { return d.departure; })
+        });
+    });
+
+    var lineStrings = {};
+    shapeFeatures.features.forEach(function(line) {
+        lineStrings[line.id] = line;
     });
 
 
     function for_ts(time) {
         var points = [];
         scales.forEach(function(scale) {
-            var distance = scale.scale(time);
-            if(distance) {
-                var lineString = lines.filter(scale.shape_id).top(Infinity)[0];
-                points.push(turf.along(lineString, distance / 1000, "kilometers"));
+            if(time >= scale.minTime && time <= scale.maxTime) {
+                var distance = scale.scale(time);
+                if(distance) {
+                    var lineString = lineStrings[scale.shape_id];
+                    var newPoint = turf.along(lineString, distance, "kilometers");
+                    if(pulse) {
+                        newPoint.properties.arrival = scale.arrivalStationTimes.indexOf(time) >= 0;
+                        newPoint.properties.departure = scale.departureStationTimes.indexOf(time) >= 0;
+                    }
+                    points.push(newPoint);
+                }
             }
         });
 
-        var mapPoints = svg.selectAll("circle").data(points.map(function(d) { return d.geometry.coordinates; }));
+        var mapPoints = svg.selectAll("circle").data(points);
 
-        mapPoints.enter().append("circle");
+        mapPoints.enter().append("circle").attr("r", 3);
 
         mapPoints
-            .attr("cx", function(d) { return projection(d)[0]; })
-            .attr("cy", function(d) { return projection(d)[1]; })
-            .attr("r", 4);
+            .attr("cx", function(d) { return projection(d.geometry.coordinates)[0]; })
+            .attr("cy", function(d) { return projection(d.geometry.coordinates)[1]; });
 
-        mapPoints.exit().remove();
-    }
-
-    var req = window.requestAnimationFrame(step);
-
-    function step() {
-        for_ts(timestamp);
-
-        timestamp += 10;
-
-        if(timestamp > to) {
-            window.cancelAnimationFrame(req);
-        } else {
-            window.requestAnimationFrame(step);
+        if(pulse) {
+            mapPoints
+            .style("fill", function(d) {
+                if(d.properties.arrival) {
+                    return "red";
+                } else if(d.properties.departure) {
+                    return "green";
+                } else {
+                    return "black";
+                }
+            })
+            .attr("r", function(d) { return (d.properties.arrival || d.properties.departure) ? 5 : 3; });
         }
 
-        textDisplay.text((((timestamp / 60 / 60) | 0) % 12) + ":" +
-                         (((timestamp / 60) | 0) % 60) + ":" +
-                         (timestamp % 60));
+        mapPoints.exit().remove();
+
+        textDisplay.text(pad0((((timestamp / 60 / 60) | 0) % 24)) + ":" +
+                         pad0((((timestamp / 60) | 0) % 60)) + ":" +
+                         pad0((timestamp % 60)));
     }
 
+    // setInterval(function() {
+    d3.timer(function() {
+        for_ts(timestamp);
+
+        timestamp += timestep;
+
+        if(timestamp > to) {
+            return true;
+        } else {
+            return false;
+        }
+    });
+        // }, 100);
 
 
 

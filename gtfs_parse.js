@@ -5,6 +5,9 @@ var d3 = require("d3"),
     crypto = require("crypto"),
     transit = require("transit-js");
 
+var serviceFilter = "T0";
+// var serviceFilter = "T0+a5";
+
 if(process.argv.length < 3) {
     console.log("Usage: node gtfs_parse.js path/to/gtfs/type/root path/to/data/type");
     process.exit(1);
@@ -47,7 +50,10 @@ d3.csv.parse(rw.readFileSync(tripsPath, "utf8")).forEach(function(trip) {
             stops: [],
         };
 
-    trips[id] = value;
+
+    if(!serviceFilter || (serviceFilter && trip.service_id === serviceFilter) ) {
+        trips[id] = value;
+    }
 });
 
 var transformToSecondsIntoDay = function(time) {
@@ -78,7 +84,9 @@ reader.fill(function flow(error) {
             stop_id: +row.stop_id,
         };
 
-        trips[row.trip_id].stops.push(stop);
+        if(row.trip_id in trips) {
+            trips[row.trip_id].stops.push(stop);
+        }
     }
 
     if(reader.ended) {
