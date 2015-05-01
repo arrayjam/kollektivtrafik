@@ -1,11 +1,28 @@
-/* globals queue, transit, crossfilter */
+var d3 = require("d3"),
+    topojson = require("topojson"),
+    queue = require("queue-async"),
+    turf = require("turf"),
+    crossfilter = require("crossfilter"),
+    operative = require("operative");
+
+console.log(operative);
+var calculator = operative({
+    add: function(a, b, cb) {
+        var s = d3.scale.linear().domain([0, 1]).range([0, 10]);
+        cb(s(a + b));
+    }
+});
+
+calculator.add(0.1, 0.2, function(result) {
+    console.log(result); // => 3
+});
 
 var transportType = window.transportType || 2;
-queue()
-    .defer(d3.json, "data/" + transportType + "/shapes.topojson")
-    .defer(d3.json, "data/" + transportType + "/trips.json")
-    .defer(d3.csv,  "data/" + transportType + "/calendar.csv")
-    .await(ready);
+// queue()
+//     .defer(d3.json, "data/" + transportType + "/shapes.topojson")
+//     .defer(d3.json, "data/" + transportType + "/trips.json")
+//     .defer(d3.csv,  "data/" + transportType + "/calendar.csv")
+//     .await(ready);
 
 var width = 960,
     height = 960;

@@ -1,1 +1,4 @@
 public/data/*
+public/bundle.js
+sources/
+node_modules/
