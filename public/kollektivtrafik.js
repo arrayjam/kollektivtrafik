@@ -1,9 +1,10 @@
 /* globals queue, transit, crossfilter */
 
+var transportType = window.transportType || 2;
 queue()
-    .defer(d3.json, "data/4/shapes.topojson")
-    .defer(d3.json, "data/4/trips.json")
-    .defer(d3.csv,  "data/4/calendar.csv")
+    .defer(d3.json, "data/" + transportType + "/shapes.topojson")
+    .defer(d3.json, "data/" + transportType + "/trips.json")
+    .defer(d3.csv,  "data/" + transportType + "/calendar.csv")
     .await(ready);
 
 var width = 960,
