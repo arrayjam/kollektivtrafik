@@ -1,28 +1,11 @@
-var d3 = require("d3"),
-    topojson = require("topojson"),
-    queue = require("queue-async"),
-    turf = require("turf"),
-    crossfilter = require("crossfilter"),
-    operative = require("operative");
-
-console.log(operative);
-var calculator = operative({
-    add: function(a, b, cb) {
-        var s = d3.scale.linear().domain([0, 1]).range([0, 10]);
-        cb(s(a + b));
-    }
-});
-
-calculator.add(0.1, 0.2, function(result) {
-    console.log(result); // => 3
-});
+/* globals queue, crossfilter, d3, topojson  */
 
 var transportType = window.transportType || 2;
-// queue()
-//     .defer(d3.json, "data/" + transportType + "/shapes.topojson")
-//     .defer(d3.json, "data/" + transportType + "/trips.json")
-//     .defer(d3.csv,  "data/" + transportType + "/calendar.csv")
-//     .await(ready);
+queue()
+    .defer(d3.json, "data/" + transportType + "/shapes.topojson")
+    .defer(d3.json, "data/" + transportType + "/trips.json")
+    .defer(d3.csv,  "data/" + transportType + "/calendar.csv")
+    .await(ready);
 
 var width = 960,
     height = 960;
@@ -51,8 +34,7 @@ function ready(error, shapes, trips, calendar) {
         from = 15900,
         // from = 28800,
         to = 86400,
-        timestep = 4,
-        pulse = false,
+        timestep = 5,
         timestamp = from;
 
     var shapeFeatures = topojson.feature(shapes, shapes.objects.collection);
@@ -112,7 +94,8 @@ function ready(error, shapes, trips, calendar) {
             minTime: minTime,
             maxTime: maxTime,
             arrivalStationTimes: stops.map(function(d) { return d.arrival; }),
-            departureStationTimes: stops.map(function(d) { return d.departure; })
+            departureStationTimes: stops.map(function(d) { return d.departure; }),
+            trip_id: trip.trip_id
         });
     });
 
@@ -123,43 +106,32 @@ function ready(error, shapes, trips, calendar) {
 
 
     function for_ts(time) {
-        var points = [];
+        points.length = 0;
         scales.forEach(function(scale) {
             if(time >= scale.minTime && time <= scale.maxTime) {
-                var distance = scale.scale(time);
+                distance = scale.scale(time);
                 if(distance) {
-                    var lineString = lineStrings[scale.shape_id];
-                    var newPoint = turf.along(lineString, distance, "kilometers");
-                    if(pulse) {
-                        newPoint.properties.arrival = scale.arrivalStationTimes.indexOf(time) >= 0;
-                        newPoint.properties.departure = scale.departureStationTimes.indexOf(time) >= 0;
-                    }
-                    points.push(newPoint);
+                    lineString = lineStrings[scale.shape_id];
+                    newPoint = turf.along(lineString, distance, "kilometers");
+                    newPoint.trip_id = scale.trip_id;
+                    points[points.length] = newPoint;
+                    // points.push(newPoint);
                 }
             }
         });
 
-        var mapPoints = svg.selectAll("circle").data(points);
+        mapPoints = svg.selectAll("circle").data(points, function(d) { return d.trip_id; });
 
         mapPoints.enter().append("circle").attr("r", 3);
 
-        mapPoints
-            .attr("cx", function(d) { return projection(d.geometry.coordinates)[0]; })
-            .attr("cy", function(d) { return projection(d.geometry.coordinates)[1]; });
-
-        if(pulse) {
-            mapPoints
-            .style("fill", function(d) {
-                if(d.properties.arrival) {
-                    return "red";
-                } else if(d.properties.departure) {
-                    return "green";
-                } else {
-                    return "black";
-                }
-            })
-            .attr("r", function(d) { return (d.properties.arrival || d.properties.departure) ? 5 : 3; });
-        }
+        mapPoints.each(function(d) {
+            var projected = projection(d.geometry.coordinates);
+            this.setAttribute("cx", projected[0]);
+            this.setAttribute("cy", projected[1]);
+        });
+            // this.
+            // .attr("cx", function(d) { return projection(d.geometry.coordinates)[0]; })
+            // .attr("cy", function(d) { return projection(d.geometry.coordinates)[1]; });
 
         mapPoints.exit().remove();
 
@@ -167,8 +139,12 @@ function ready(error, shapes, trips, calendar) {
                          pad0((((timestamp / 60) | 0) % 60)) + ":" +
                          pad0((timestamp % 60)));
     }
-
     // setInterval(function() {
+    var points = [],
+        distance = 0,
+        lineString,
+        newPoint,
+        mapPoints;
     d3.timer(function() {
         for_ts(timestamp);
 
