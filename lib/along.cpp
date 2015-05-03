@@ -20,7 +20,15 @@ ToRadian(double Degree)
 {
     double Result = Degree * M_PI / 180;
 
-    return(Result);
+    return Result;
+}
+
+double
+ToDegree(double Radian)
+{
+    double Result = Radian * 180 / M_PI;
+
+    return Result;
 }
 
 double
@@ -48,6 +56,24 @@ DistanceBetweenPoints(point PointA, point PointB)
     return Result;
 }
 
+double
+BearingBetweenPoints(point PointA, point PointB)
+{
+    double Lon1 = ToRadian(PointA.Lon);
+    double Lon2 = ToRadian(PointB.Lon);
+    double Lat1 = ToRadian(PointA.Lat);
+    double Lat2 = ToRadian(PointB.Lat);
+
+    double A = sin(Lon2 - Lon1) * cos(Lat2);
+    double B = ((cos(Lat1) * sin(Lat2)) -
+                (sin(Lat1) * cos(Lat2) * cos(Lon2 - Lon1)));
+
+    double Bearing = ToDegree(atan2(A, B));
+
+    return Bearing;
+}
+
+
 int
 main(int argc, char **argv)
 {
@@ -56,6 +82,9 @@ main(int argc, char **argv)
 
     double Distance = DistanceBetweenPoints(PointA, PointB);
     printf("Distance is: %f\n", Distance);
+
+    double Bearing = BearingBetweenPoints(PointA, PointB);
+    printf("Bearing is: %f\n", Bearing);
 
     return 0;
 }
