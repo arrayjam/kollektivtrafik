@@ -82,11 +82,11 @@ PointAlongDistanceAndBearing(point InitialPoint, double Distance, double Bearing
     double R = 6371000;
     double Delta = Distance / R;
 
-    double Lat2 = asin(sin(Lat1) * cos(Distance / R) +
-                       cos(Lat1) * sin(Distance / R) * cos(BearingRad));
+    double Lat2 = asin(sin(Lat1) * cos(Delta) +
+                       cos(Lat1) * sin(Delta) * cos(BearingRad));
 
-    double Lon2 = Lon1 + atan2(sin(BearingRad) * sin(Distance / R) * cos(Lat1),
-                               cos(Distance / R) - sin(Lat1) * sin(Lat2));
+    double Lon2 = Lon1 + atan2(sin(BearingRad) * sin(Delta) * cos(Lat1),
+                               cos(Delta) - sin(Lat1) * sin(Lat2));
     point Result = Point(ToDegree(Lon2), ToDegree(Lat2));
 
     return Result;
