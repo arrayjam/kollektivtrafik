@@ -73,6 +73,24 @@ BearingBetweenPoints(point PointA, point PointB)
     return Bearing;
 }
 
+point
+PointAlongDistanceAndBearing(point InitialPoint, double Distance, double Bearing)
+{
+    double Lon1 = ToRadian(InitialPoint.Lon);
+    double Lat1 = ToRadian(InitialPoint.Lat);
+    double BearingRad = ToRadian(Bearing);
+    double R = 6371000;
+    double Delta = Distance / R;
+
+    double Lat2 = asin(sin(Lat1) * cos(Distance / R) +
+                       cos(Lat1) * sin(Distance / R) * cos(BearingRad));
+
+    double Lon2 = Lon1 + atan2(sin(BearingRad) * sin(Distance / R) * cos(Lat1),
+                               cos(Distance / R) - sin(Lat1) * sin(Lat2));
+    point Result = Point(ToDegree(Lon2), ToDegree(Lat2));
+
+    return Result;
+}
 
 int
 main(int argc, char **argv)
@@ -85,6 +103,9 @@ main(int argc, char **argv)
 
     double Bearing = BearingBetweenPoints(PointA, PointB);
     printf("Bearing is: %f\n", Bearing);
+
+    point PointAlongBearing = PointAlongDistanceAndBearing(PointA, Distance, Bearing);
+    printf("New point is at %f, %f\n", PointAlongBearing.Lon, PointAlongBearing.Lat);
 
     return 0;
 }
